@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Table</title>
+
+    <link rel="stylesheet" href="css/bootstrap.css"/>
+    <link rel="stylesheet" href="css/table.css"/>
+
+    <script type='text/javascript' src='js/jquery-1.9.1.js'></script>
+    <script type="text/javascript" src="js/jquery-ui.js"></script>
+    <script type="text/javascript" src="js/bootstrap.js"></script>
+    <script type='text/javascript' src="js/knockout-3.1.0.js"></script>
+    <script type='text/javascript' src="js/knockout-sortable.js"></script>
+    <script type='text/javascript' src="js/fixed-table.js"></script>
+</head>
+<body>
+
+<script id="matrixItem" type="text/html">
+    <div class="Row header-rules" data-bind="foreach: $root.securityProfiles()">
+        <div class="Cell">
+            <span data-bind="text: name"></span>
+        </div>
+    </div>
+    <!-- ko foreach: sp_settings() -->
+        <!-- ko foreach: matrix() -->
+        <div class="Row" data-bind="foreach: values(), attr {id: sp_settings_id}">
+            <div class="Cell">
+                <input type="checkbox" data-bind="checked: value,
+                                                  css:     {disabled: !$parents[ 2 ].is_editable()},
+                                                  enable:  $parents[ 2 ].is_editable()"/>
+            </div>
+        </div>
+        <!-- /ko  -->
+    <!-- /ko  -->
+</script>
+
+<script id="spSettingsSortable" type="text/html">
+    <div class="settings"
+         data-bind="sortable: {
+                                data:      sp_settings,
+                                afterMove: $root.updateLastAction,
+                                allowDrop: $data.is_move_item_to_me(),
+                                options: {
+                                    containment: $data.containment()
+                                }
+                               }">
+        <div class="Row">
+            <div class="Cell">
+                    <span data-bind="visible: !$parent.isSelected( $data )">
+                         <a href="#" data-bind="click: $parent.removeSettings.bind( $data )">x</a>
+                         <a href="#">
+                             <span data-bind="text: uid"></span>
+                             <span data-bind="text: title, click: $parent.selected"></span>
+                         </a>
+                    </span>
+                    <span data-bind="visibleAndSelect: $parent.isSelected( $data )">
+                        <span data-bind="text: $parent.uid"></span>
+                        <input type="text" data-bind="value: title, event: {blur: $parent.clear}"/>
+                    </span>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="spSettingsDraggable" type="text/html">
+    <div class="settings" data-bind="foreach: sp_settings">
+        <div class="Row" data-bind="draggable: {data: $data, afterMove: $root.updateLastAction}">
+            <div class="Cell">
+                    <span data-bind="visible: !$parents[ 1 ].isSelected( $data )">
+                         <a href="#" data-bind="click: $parents[ 1 ].removeSettings.bind( $data )">x</a>
+                         <a href="#">
+                             <span data-bind="text: uid"></span>
+                             <span data-bind="text: title, click: $parents[ 1 ].selected"></span>
+                         </a>
+                    </span>
+                    <span data-bind="visibleAndSelect: $parents[ 1 ].isSelected( $data )">
+                        <span data-bind="text: $parents[ 1 ].uid"></span>
+                        <input type="text" data-bind="value: title, event: {blur: $parents[ 1 ].clear}"/>
+                    </span>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="securityProfiles" type="text/html">
+    <div class="Cell">
+        <span class="text-overflow" data-bind="text: name"></span>
+    </div>
+</script>
+
+<script id="settingsGroup" type="text/html">
+    <div class="accordion-group" data-bind="attr: {id: id}">
+        <div class="accordion-heading">
+            <a class="accordion-toggle" data-bind="text: name, attr: {href: '#tab-'+id()}" data-toggle="collapse"></a>
+        </div>
+
+        <div class="accordion-body collapse" data-bind="attr: {id: 'tab-'+id()}, css: {'no-drop': !is_move_item_to_me() || !is_sort_items()}">
+            <div class="accordion-inner">
+                <div class="outer" data-bind="table: {width: '100%', height: '100%', fixHeader: true}">
+                    <div class="innerbox rules">
+
+                        <div class="Row header-rules clone"
+                             data-bind="sortable: {
+                                                    data:         $root.securityProfiles,
+                                                    connectClass: 'header-rules'+id(),
+                                                    beforeMove:   $root.updateLastAction,
+                                                    template:     'securityProfiles',
+                                                    options: {
+                                                        axis: 'x'
+                                                    },
+                                                    isEnabled: true
+                                                   }">
+                        </div><!-- header-rules -->
+
+                        <div class="name-rules">
+                            <div class="Table">
+                                <div class="Heading">
+                                    <div class="Row Title">
+                                        <div class="Cell">
+                                            Settings
+                                        </div>
+                                    </div>
+                                    <div data-bind="template: {name: settingsGroupsTemplate}"></div>
+                                </div>
+                            </div>
+                        </div><!-- name-rules -->
+
+                        <div class="matrix-rules">
+                            <div class="Table">
+                                <div class="sortable-mask"></div>
+
+                                <div data-bind="template: {name: 'matrixItem'}"></div>
+                            </div>
+                        </div><!-- matrix-rules -->
+
+                        <div class="clearfix"></div>
+                    </div>
+                </div><!-- outer -->
+            </div>
+        </div><!-- accordion-body -->
+    </div>
+</script>
+
+<div class="container">
+    <div class="row">
+        <div class="span12">
+
+            <div class="message" data-bind="flash: lastAction"></div>
+            <div class="error" data-bind="flash:  lastError"></div>
+
+            <div class="accordion settings-groups"
+                 data-bind="sortable: {
+                                        data:         sGroups,
+                                        beforeMove:   updateLastAction,
+                                        template:     'settingsGroup',
+                                        connectClass: 'settings-groups'
+                                       }">
+            </div>
+
+            <div class="accordion settings-groups no-sort"
+                 data-bind="template: {
+                                        name:    'settingsGroup',
+                                        foreach: sGroupsNoSort()
+                                       }">
+            </div>
+
+            <hr/>
+
+            <div id="results">
+                <div class="row" data-bind="foreach: sGroups()">
+                    <div class="span6">
+                        <h3>Settings - <span data-bind="text: name"></span></h3>
+                        <ul data-bind="foreach: sp_settings()">
+                            <li>
+                                <span data-bind="text: title"></span> -
+                                <span data-bind="text: position"></span> -
+                                <span data-bind="text: uid"></span>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+                <div class="row" data-bind="foreach: sGroupsNoSort()">
+                    <div class="span6">
+                        <h3>Settings - <span data-bind="text: name"></span></h3>
+                        <ul data-bind="foreach: sp_settings()">
+                            <li>
+                                <span data-bind="text: title"></span> -
+                                <span data-bind="text: position"></span> -
+                                <span data-bind="text: uid"></span>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div><!--#results-->
+        </div>
+    </div>
+</div>
+
+<script type='text/javascript' src="js/table.js"></script>
+
+<script>
+    "use strict";
+    var dataSettings = [
+        {
+            "id": "549801f8f508ce18ac0001ad",
+            "is_editable": false,
+            "is_move_item_to_me": true,
+            "is_move_item_to_out": true,
+            "is_sort_items": false,
+            "is_sort_self": true,
+            "name": "Defaultsettingsgroup",
+            "position": 0,
+            "sp_settings": [
+                {
+                    "description": "Fecebook",
+                    "disable_code": 0,
+                    "id": "54980662f508ce06fc000097",
+                    "position": 1000,
+                    "title": "Fecebook",
+                    "uid": "F001"
+                },
+                {
+                    "description": "Twitter",
+                    "disable_code": 0,
+                    "id": "5498067bf508ce06fc0000b4",
+                    "position": 1000,
+                    "title": "Twitter",
+                    "uid": "T001"
+                },
+                {
+                    "description": "GooglePlay",
+                    "disable_code": 0,
+                    "id": "549806ecf508ce06fc0000db",
+                    "position": 1000,
+                    "title": "GooglePlay",
+                    "uid": "GP001"
+                },
+                {
+                    "description": "Instagram",
+                    "disable_code": 0,
+                    "id": "5498081df508ce06fc000101",
+                    "position": 1000,
+                    "title": "Instagram",
+                    "uid": "I001"
+                },
+                {
+                    "description": "Pinterest",
+                    "disable_code": 0,
+                    "id": "54980c68f508ce06fc000117",
+                    "position": 1000,
+                    "title": "Pinterest",
+                    "uid": "P001"
+                }
+            ]
+        },
+        {
+            "id": "54980deff508ce06fc00012e",
+            "is_editable": true,
+            "is_move_item_to_me": true,
+            "is_move_item_to_out": true,
+            "is_sort_items": true,
+            "is_sort_self": true,
+            "name": "Testgroup",
+            "position": 0,
+            "sp_settings": [
+                {
+                    "description": "Fecebook",
+                    "disable_code": 0,
+                    "id": "54980662f508ce06fc000097",
+                    "position": 1000,
+                    "title": "Fecebook",
+                    "uid": "F001"
+                },
+                {
+                    "description": "Twitter",
+                    "disable_code": 0,
+                    "id": "5498067bf508ce06fc0000b4",
+                    "position": 1000,
+                    "title": "Twitter",
+                    "uid": "T001"
+                },
+                {
+                    "description": "GooglePlay",
+                    "disable_code": 0,
+                    "id": "549806ecf508ce06fc0000db",
+                    "position": 1000,
+                    "title": "GooglePlay",
+                    "uid": "GP001"
+                },
+                {
+                    "description": "Instagram",
+                    "disable_code": 0,
+                    "id": "5498081df508ce06fc000101",
+                    "position": 1000,
+                    "title": "Instagram",
+                    "uid": "I001"
+                },
+                {
+                    "description": "Pinterest",
+                    "disable_code": 0,
+                    "id": "54980c68f508ce06fc000117",
+                    "position": 1000,
+                    "title": "Pinterest",
+                    "uid": "P001"
+                }
+            ]
+        },
+        {
+            "id": "54980e06f508ce06fc00015d",
+            "is_editable": true,
+            "is_move_item_to_me": false,
+            "is_move_item_to_out": false,
+            "is_sort_items": true,
+            "is_sort_self": false,
+            "name": "Testgroup1",
+            "position": 0,
+            "sp_settings": [
+                {
+                    "description": "Fecebook",
+                    "disable_code": 0,
+                    "id": "54980662f508ce06fc000097",
+                    "position": 1000,
+                    "title": "Fecebook",
+                    "uid": "F001"
+                },
+                {
+                    "description": "Twitter",
+                    "disable_code": 0,
+                    "id": "5498067bf508ce06fc0000b4",
+                    "position": 1000,
+                    "title": "Twitter",
+                    "uid": "T001"
+                },
+                {
+                    "description": "GooglePlay",
+                    "disable_code": 0,
+                    "id": "549806ecf508ce06fc0000db",
+                    "position": 1000,
+                    "title": "GooglePlay",
+                    "uid": "GP001"
+                },
+                {
+                    "description": "Instagram",
+                    "disable_code": 0,
+                    "id": "5498081df508ce06fc000101",
+                    "position": 1000,
+                    "title": "Instagram",
+                    "uid": "I001"
+                },
+                {
+                    "description": "Pinterest",
+                    "disable_code": 0,
+                    "id": "54980c68f508ce06fc000117",
+                    "position": 1000,
+                    "title": "Pinterest",
+                    "uid": "P001"
+                }
+            ]
+        },
+        {
+            "id": "5492823d312dcf1d84000000",
+            "is_editable": true,
+            "is_move_item_to_me": true,
+            "is_move_item_to_out": true,
+            "is_sort_items": true,
+            "is_sort_self": false,
+            "name": "Other",
+            "position": 0,
+            "sp_settings": [
+                {
+                    "description": "Fecebook",
+                    "disable_code": 0,
+                    "id": "54980662f508ce06fc000097",
+                    "position": 1000,
+                    "title": "Fecebook",
+                    "uid": "F001"
+                },
+                {
+                    "description": "Twitter",
+                    "disable_code": 0,
+                    "id": "5498067bf508ce06fc0000b4",
+                    "position": 1000,
+                    "title": "Twitter",
+                    "uid": "T001"
+                },
+                {
+                    "description": "GooglePlay",
+                    "disable_code": 0,
+                    "id": "549806ecf508ce06fc0000db",
+                    "position": 1000,
+                    "title": "GooglePlay",
+                    "uid": "GP001"
+                },
+                {
+                    "description": "Instagram",
+                    "disable_code": 0,
+                    "id": "5498081df508ce06fc000101",
+                    "position": 1000,
+                    "title": "Instagram",
+                    "uid": "I001"
+                },
+                {
+                    "description": "Pinterest",
+                    "disable_code": 0,
+                    "id": "54980c68f508ce06fc000117",
+                    "position": 1000,
+                    "title": "Pinterest",
+                    "uid": "P001"
+                }
+            ]
+        }
+    ];
+
+    var dataSecurityProfiles = [
+        {
+            "changes_key": "549801f8f508ce18ac0001a2",
+            "created_at": "2014-12-22T11:35:20.138Z",
+            "creator_id": null,
+            "id": "549801f8f508ce18ac0001a1",
+            "is_deleted": false,
+            "is_inherit": false,
+            "name": "Ordinary user",
+            "partner_id": "549801f7f508ce18ac0000d1",
+            "position": 0,
+            "updated_at": "2014-12-22T11:35:20.138Z",
+            "updater_id": null,
+            "with_cloned": null
+        },
+        {
+            "changes_key": "549801f8f508ce18ac0001a6",
+            "created_at": "2014-12-22T11:35:20.287Z",
+            "creator_id": null,
+            "id": "549801f8f508ce18ac0001a5",
+            "is_deleted": false,
+            "is_inherit": false,
+            "name": "Business user",
+            "partner_id": "549801f7f508ce18ac0000d1",
+            "position": 1,
+            "updated_at": "2014-12-22T11:35:20.287Z",
+            "updater_id": null,
+            "with_cloned": null
+        },
+        {
+            "changes_key": "549801f8f508ce18ac0001aa",
+            "created_at": "2014-12-22T11:35:20.518Z",
+            "creator_id": null,
+            "id": "549801f8f508ce18ac0001a9",
+            "is_deleted": false,
+            "is_inherit": false,
+            "name": "Expert user",
+            "partner_id": "549801f7f508ce18ac0000d1",
+            "position": 2,
+            "updated_at": "2014-12-22T11:35:20.518Z",
+            "updater_id": null,
+            "with_cloned": null
+        }
+    ];
+
+    var dataMatrix = [
+        {
+            "sp_settings_id": "54980662f508ce06fc000097",
+            "values": [
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a1",
+                    "sp_setting_id": "54980662f508ce06fc000097",
+                    "value": true
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a5",
+                    "sp_setting_id": "54980662f508ce06fc000097",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a9",
+                    "sp_setting_id": "54980662f508ce06fc000097",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "sp_settings_id": "5498067bf508ce06fc0000b4",
+            "values": [
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a1",
+                    "sp_setting_id": "5498067bf508ce06fc0000b4",
+                    "value": true
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a5",
+                    "sp_setting_id": "5498067bf508ce06fc0000b4",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a9",
+                    "sp_setting_id": "5498067bf508ce06fc0000b4",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "sp_settings_id": "549806ecf508ce06fc0000db",
+            "values": [
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a1",
+                    "sp_setting_id": "549806ecf508ce06fc0000db",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a5",
+                    "sp_setting_id": "549806ecf508ce06fc0000db",
+                    "value": true
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a9",
+                    "sp_setting_id": "549806ecf508ce06fc0000db",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "sp_settings_id": "5498081df508ce06fc000101",
+            "values": [
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a1",
+                    "sp_setting_id": "5498081df508ce06fc000101",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a5",
+                    "sp_setting_id": "5498081df508ce06fc000101",
+                    "value": true
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a9",
+                    "sp_setting_id": "5498081df508ce06fc000101",
+                    "value": false
+                }
+            ]
+        },
+        {
+            "sp_settings_id": "54980c68f508ce06fc000117",
+            "values": [
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a1",
+                    "sp_setting_id": "54980c68f508ce06fc000117",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a5",
+                    "sp_setting_id": "54980c68f508ce06fc000117",
+                    "value": false
+                },
+                {
+                    "security_profile_id": "549801f8f508ce18ac0001a9",
+                    "sp_setting_id": "54980c68f508ce06fc000117",
+                    "value": false
+                }
+            ]
+        }
+    ];
+
+    //========================
+    var model = new ViewModel();
+
+    model.loadSettingsGroups( dataSettings, dataMatrix )
+         .loadSecurityProfiles( dataSecurityProfiles );
+
+    ko.applyBindings( model );
+
+</script>
+</body>
+</html>
